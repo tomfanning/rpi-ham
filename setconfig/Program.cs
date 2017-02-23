@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace setconfig
@@ -65,30 +66,37 @@ namespace setconfig
             File.WriteAllText(dwConfDestination, newDwConf);
             Console.WriteLine("Wrote direwolf config to " + dwConfDestination);
 
+            string wpaHashBefore;
+            if (File.Exists(wpaDest))
+            {
+                wpaHashBefore = BitConverter.ToString(MD5.Create().ComputeHash(File.ReadAllBytes(wpaDest)));
+            }
+            else
+            {
+                wpaHashBefore = null;
+            }
+
             if (cfg.Wifis.Length > 0)
             {
                 string wpaConfig = BuildWpaConfig(cfg.Wifis);
                 File.WriteAllText(wpaDest, wpaConfig);
                 Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
-                Console.WriteLine("Restarting Wi-Fi, cross your fingers");
-                ExecuteProcess("/sbin/wpa_cli", "-i wlan0 terminate");
-                ExecuteProcess("/sbin/ifdown", "wlan0");
-                var ifupResult = ExecuteProcess("/sbin/ifup", "wlan0");
-                if (ifupResult.ExitCode != 0)
-                {
-                    bool hasOutput = String.IsNullOrWhiteSpace(ifupResult.Stdout);
-                    Console.WriteLine($"ifup exited with code {ifupResult.ExitCode}{(hasOutput ? "" : ":")}");
-                    if (hasOutput)
-                    {
-                        Console.WriteLine(ifupResult.Stdout.Trim());
-                    }
-                }
             }
 
             string icesConf = File.ReadAllText(icesTemplate)
                 .Replace("$mycall", cfg.Mycall);
             File.WriteAllText(icesDest, icesConf);
             Console.WriteLine("Wrote ices2 config to " + icesDest);
+
+            if (wpaHashBefore == null || BitConverter.ToString(MD5.Create().ComputeHash(File.ReadAllBytes(wpaDest))) != wpaHashBefore)
+            {
+                Console.WriteLine("Rebooting to pick up Wi-Fi settings...");
+                ExecuteProcess("/sbin/reboot");
+            }
+            else
+            {
+                Console.WriteLine("Wi-Fi not changed, not rebooting");
+            }
 
             return 0;
         }
