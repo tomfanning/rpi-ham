@@ -1,0 +1,231 @@
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+
+namespace setconfig
+{
+    class Program
+    {
+        const string dwTemplate = "/root/direwolf.template.conf";
+        const string dwConfDestination = "/tmp/direwolf.conf";
+
+        const string wpaTemplate = "/root/wpa_supplicant.template.conf";
+        const string wpaDest = "/etc/wpa_supplicant/wpa_supplicant.conf";
+
+        const string icesTemplate = "/root/ices-conf.template.xml";
+        const string icesDest = "/tmp/ices-conf.xml";
+
+        static int Main(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Expected one argument - path to JSON config file");
+                return -1;
+            }
+
+            string fn = args[0];
+            if (!File.Exists(fn))
+            {
+                Console.WriteLine("File not found: " + fn);
+                return -1;
+            }
+
+            if (!File.Exists(dwTemplate))
+            {
+                Console.WriteLine("File not found: " + dwTemplate);
+                return -1;
+            }
+
+            if (!File.Exists(wpaTemplate))
+            {
+                Console.WriteLine("File not found: " + wpaTemplate);
+                return -1;
+            }
+
+            Config cfg;
+            try
+            {
+                cfg = SimpleJson.SimpleJson.DeserializeObject<Config>(File.ReadAllText(fn));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading config: " + ex.GetBaseException().Message);
+                return -1;
+            }
+
+            string newDwConf = File.ReadAllText(dwTemplate)
+                .Replace("$mycall", cfg.Mycall)
+                .Replace("$igserver", cfg.Igserver)
+                .Replace("$passcode", DoAprsHash(cfg.Mycall).ToString())
+                .Replace("$lat", FormatLatLon(cfg.Lat, true))
+                .Replace("$lon", FormatLatLon(cfg.Lon, false))
+                .Replace("$modem", cfg.Modem);
+
+            File.WriteAllText(dwConfDestination, newDwConf);
+            Console.WriteLine("Wrote direwolf config to " + dwConfDestination);
+
+            if (cfg.Wifis.Length > 0)
+            {
+                string wpaConfig = BuildWpaConfig(cfg.Wifis);
+                File.WriteAllText(wpaDest, wpaConfig);
+                Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
+                ExecuteProcess("ifdown wlan0");
+                var ifupResult = ExecuteProcess("ifup wlan0");
+                if (ifupResult.ExitCode != 0)
+                {
+                    bool hasOutput = String.IsNullOrWhiteSpace(ifupResult.Stdout);
+                    Console.WriteLine($"ifup exited with code {ifupResult.ExitCode}{(hasOutput ? "" : ":")}");
+                    if (hasOutput)
+                    {
+                        Console.WriteLine(ifupResult.Stdout.Trim());
+                    }
+                }
+                Console.WriteLine("Restarted Wi-Fi");
+            }
+
+            string icesConf = File.ReadAllText(icesTemplate)
+                .Replace("$mycall", cfg.Mycall);
+            File.WriteAllText(icesDest, icesConf);
+            Console.WriteLine("Wrote ices2 config to " + icesDest);
+
+            return 0;
+        }
+
+        static string BuildWpaConfig(Network[] wifis)
+        {
+            var sb = new StringBuilder(File.ReadAllText(wpaTemplate));
+
+            foreach (Network n in wifis)
+            {
+                sb.AppendLine();
+                string networkBlock = GetNetworkBlock(n.SSID, n.Key).Stdout;
+                sb.AppendLine(networkBlock);
+            }
+
+            return sb.ToString();
+        }
+
+        static ProcessResult GetNetworkBlock(string sSID, string key)
+        {
+            return ExecuteProcess("/usr/bin/wpa_passphrase", sSID + " " + key);
+        }
+
+        static ProcessResult ExecuteProcess(string process, string args = null)
+        {
+            Process p = new Process();
+            p.StartInfo = new ProcessStartInfo(process, args)
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            };
+            p.Start();
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+
+            return new ProcessResult { Stdout = output, ExitCode = p.ExitCode };
+        }
+
+        class ProcessResult
+        {
+            public int ExitCode { get; set; }
+            public string Stdout { get; set; }
+        }
+
+        static string FormatLatLon(double o, bool isLat)
+        {
+            // e.g. 51^26.84N
+
+            string gtLetter, ltLetter;
+            if (isLat)
+            {
+                gtLetter = "N";
+                ltLetter = "S";
+            }
+            else
+            {
+                gtLetter = "E";
+                ltLetter = "W";
+            }
+
+            double a = Math.Abs(o);
+
+            string deg = Math.Floor(a).ToString("0");
+            double decMin = (a - Math.Floor(a)) * 60.0;
+            string letter = o > 0 ? gtLetter : ltLetter;
+
+            string ret = $"{deg}^{decMin:0.00}{letter}";
+
+            return ret;
+        }
+
+        static int DoAprsHash(string call)
+        {
+            string upper = call.ToUpper();
+            string main = upper.Split('-')[0];
+
+            int hash = 0x73e2;
+
+            char[] chars = main.ToCharArray();
+
+            while (chars.Length != 0)
+            {
+                char? one = shift(ref chars);
+                char? two = shift(ref chars);
+                hash = hash ^ one.Value << 8;
+
+                if (two != null)
+                {
+                    hash = hash ^ two.Value;
+                }
+            }
+
+            int result = hash & 0x7fff;
+
+            return result;
+        }
+
+        static char? shift(ref char[] chars)
+        {
+            if (chars.Length == 0)
+                return null;
+
+            char result = chars[0];
+
+            char[] newarr = new char[chars.Length - 1];
+
+            for (int i = 1; i < chars.Length; i++)
+            {
+                newarr[i - 1] = chars[i];
+            }
+
+            chars = newarr;
+
+            return result;
+        }
+    }
+
+    class Config
+    {
+        //string configTemplate = SimpleJson.SimpleJson.SerializeObject(new Config { Lat=123.45, Lon = 234.56, Modem = "1200", Mycall = "call123", Wifis = new[] { new Network { SSID = "mynet", Key = "somepass" } } });
+
+        public Config()
+        {
+            Igserver = "euro.aprs2.net";
+            Modem = "1200";
+        }
+
+        public string Mycall { get; set; }
+        public string Igserver { get; set; }
+        public Network[] Wifis { get; set; }
+        public double Lat { get; set; }
+        public double Lon { get; set; }
+        public string Modem { get; set; }
+    }
+
+    class Network
+    {
+        public string SSID { get; set; }
+        public string Key { get; set; }
+    }
+}

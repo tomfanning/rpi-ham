@@ -1,0 +1,13 @@
+﻿{
+  "Mycall": "2E1EPQ-10",
+  "Modem": "1200",
+  "Lat": 51.447291,
+  "Lon": -1.026984,
+  "Igserver": "euro.aprs2.net",
+  "Wifis": [
+    {
+      "SSID": "iot",
+      "Key": "9vTrdWVHnvCykQrrq6Oa"
+    }
+  ]
+}
