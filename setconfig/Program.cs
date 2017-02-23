@@ -70,8 +70,9 @@ namespace setconfig
                 string wpaConfig = BuildWpaConfig(cfg.Wifis);
                 File.WriteAllText(wpaDest, wpaConfig);
                 Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
-                ExecuteProcess("ifdown wlan0");
-                var ifupResult = ExecuteProcess("ifup wlan0");
+                ExecuteProcess("/sbin/wpa_cli", "-i wlan0 terminate");
+                ExecuteProcess("/sbin/ifdown", "wlan0");
+                var ifupResult = ExecuteProcess("/sbin/ifup", "wlan0");
                 if (ifupResult.ExitCode != 0)
                 {
                     bool hasOutput = String.IsNullOrWhiteSpace(ifupResult.Stdout);
