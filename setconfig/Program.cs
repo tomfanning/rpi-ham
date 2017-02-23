@@ -70,6 +70,7 @@ namespace setconfig
                 string wpaConfig = BuildWpaConfig(cfg.Wifis);
                 File.WriteAllText(wpaDest, wpaConfig);
                 Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
+                Console.WriteLine("Restarting Wi-Fi, cross your fingers");
                 ExecuteProcess("/sbin/wpa_cli", "-i wlan0 terminate");
                 ExecuteProcess("/sbin/ifdown", "wlan0");
                 var ifupResult = ExecuteProcess("/sbin/ifup", "wlan0");
@@ -82,7 +83,6 @@ namespace setconfig
                         Console.WriteLine(ifupResult.Stdout.Trim());
                     }
                 }
-                Console.WriteLine("Restarted Wi-Fi");
             }
 
             string icesConf = File.ReadAllText(icesTemplate)
