@@ -100,7 +100,8 @@ namespace setconfig
 
             if (!String.IsNullOrWhiteSpace(cfg.RootPassword))
             {
-                ExecuteProcess("/usr/sbin/chpasswd", stdin: "root:" + cfg.RootPassword);
+                //ExecuteProcess("/usr/sbin/chpasswd", stdin: "root:" + cfg.RootPassword);
+                ExecuteProcess("/bin/bash", $"-c 'echo root:{cfg.RootPassword.Trim()} | chpasswd'");
                 Console.WriteLine("Set root password");
             }
 
@@ -145,6 +146,7 @@ namespace setconfig
             if (!string.IsNullOrWhiteSpace(stdin))
             {
                 p.StandardInput.WriteLine(stdin);
+                p.StandardInput.Write((char)4);
             }
 
             string output = p.StandardOutput.ReadToEnd();
