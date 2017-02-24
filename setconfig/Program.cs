@@ -98,6 +98,12 @@ namespace setconfig
                 Console.WriteLine("Wi-Fi not changed, not rebooting");
             }
 
+            if (!String.IsNullOrWhiteSpace(cfg.RootPassword))
+            {
+                ExecuteProcess("/usr/sbin/chpasswd", stdin: "root:" + cfg.RootPassword);
+                Console.WriteLine("Set root password");
+            }
+
             return 0;
         }
 
@@ -120,7 +126,7 @@ namespace setconfig
             return ExecuteProcess("/usr/bin/wpa_passphrase", sSID + " " + key);
         }
 
-        static ProcessResult ExecuteProcess(string process, string args = null)
+        static ProcessResult ExecuteProcess(string process, string args = null, string stdin = null)
         {
             Process p = new Process();
             p.StartInfo = new ProcessStartInfo(process, args)
@@ -128,7 +134,19 @@ namespace setconfig
                 RedirectStandardOutput = true,
                 UseShellExecute = false
             };
+
+            if (!string.IsNullOrWhiteSpace(stdin))
+            {
+                p.StartInfo.RedirectStandardInput = true;
+            }
+
             p.Start();
+
+            if (!string.IsNullOrWhiteSpace(stdin))
+            {
+                p.StandardInput.WriteLine(stdin);
+            }
+
             string output = p.StandardOutput.ReadToEnd();
             p.WaitForExit();
 
@@ -230,6 +248,7 @@ namespace setconfig
         public double Lat { get; set; }
         public double Lon { get; set; }
         public string Modem { get; set; }
+        public string RootPassword { get; set; }
     }
 
     class Network

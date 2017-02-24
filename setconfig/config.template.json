@@ -9,5 +9,6 @@
       "SSID": "iot",
       "Key": "9vTrdWVHnvCykQrrq6Oa"
     }
-  ]
+  ],
+  "RootPassword": "raspberry"
 }
