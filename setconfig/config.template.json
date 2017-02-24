@@ -1,13 +1,13 @@
 ﻿{
-  "Mycall": "2E1EPQ-10",
+  "Mycall": "mycall",
   "Modem": "1200",
-  "Lat": 51.447291,
-  "Lon": -1.026984,
+  "Lat": 50.0,
+  "Lon": -1.0,
   "Igserver": "euro.aprs2.net",
   "Wifis": [
     {
-      "SSID": "iot",
-      "Key": "9vTrdWVHnvCykQrrq6Oa"
+      "SSID": "mynet",
+      "Key": "somepass"
     }
   ],
   "RootPassword": "raspberry"
