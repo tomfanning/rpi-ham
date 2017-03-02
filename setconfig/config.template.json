@@ -1,14 +1,15 @@
 ﻿{
-  "Mycall": "mycall",
+  "Mycall": "N0CALL",
   "Modem": "1200",
-  "Lat": 50.0,
-  "Lon": -1.0,
+  "Lat": 0,
+  "Lon": 0,
   "Igserver": "euro.aprs2.net",
   "Wifis": [
     {
-      "SSID": "mynet",
-      "Key": "somepass"
+      "SSID": "hamguest",
+      "Key": "wj2blyky"
     }
   ],
-  "RootPassword": "raspberry"
+  "RootPassword": "raspberry",
+  "RTLPPM": 0
 }

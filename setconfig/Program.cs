@@ -55,16 +55,29 @@ namespace setconfig
                 return -1;
             }
 
-            string newDwConf = File.ReadAllText(dwTemplate)
-                .Replace("$mycall", cfg.Mycall)
-                .Replace("$igserver", cfg.Igserver)
-                .Replace("$passcode", DoAprsHash(cfg.Mycall).ToString())
-                .Replace("$lat", FormatLatLon(cfg.Lat, true))
-                .Replace("$lon", FormatLatLon(cfg.Lon, false))
-                .Replace("$modem", cfg.Modem);
+            if (cfg.Mycall == "N0CALL")
+            {
+                Console.WriteLine($"Error: Callsign not configured in {fn}, disabling Direwolf.");
+                if (File.Exists(dwConfDestination))
+                {
+                    File.Delete(dwConfDestination);
+                }
+            }
+            else
+            {
+                string newDwConf = File.ReadAllText(dwTemplate)
+                    .Replace("$mycall", cfg.Mycall)
+                    .Replace("$igserver", cfg.Igserver)
+                    .Replace("$passcode", DoAprsHash(cfg.Mycall).ToString())
+                    .Replace("$lat", FormatLatLon(cfg.Lat, true))
+                    .Replace("$lon", FormatLatLon(cfg.Lon, false))
+                    .Replace("$modem", cfg.Modem);
 
-            File.WriteAllText(dwConfDestination, newDwConf);
-            Console.WriteLine("Wrote direwolf config to " + dwConfDestination);
+                File.WriteAllText(dwConfDestination, newDwConf);
+                Console.WriteLine("Wrote direwolf config to " + dwConfDestination);
+            }
+
+            File.WriteAllText("/etc/aprs-ppm", cfg.RTLPPM.ToString());
 
             string wpaHashBefore;
             if (File.Exists(wpaDest))
@@ -88,6 +101,12 @@ namespace setconfig
             File.WriteAllText(icesDest, icesConf);
             Console.WriteLine("Wrote ices2 config to " + icesDest);
 
+            if (!String.IsNullOrWhiteSpace(cfg.RootPassword))
+            {
+                ExecuteProcess("/bin/bash", $"-c 'echo root:{cfg.RootPassword.Trim()} | chpasswd'");
+                Console.WriteLine("Set root password");
+            }
+
             if (wpaHashBefore == null || BitConverter.ToString(MD5.Create().ComputeHash(File.ReadAllBytes(wpaDest))) != wpaHashBefore)
             {
                 Console.WriteLine("Rebooting to pick up Wi-Fi settings...");
@@ -96,12 +115,6 @@ namespace setconfig
             else
             {
                 Console.WriteLine("Wi-Fi not changed, not rebooting");
-            }
-
-            if (!String.IsNullOrWhiteSpace(cfg.RootPassword))
-            {
-                ExecuteProcess("/bin/bash", $"-c 'echo root:{cfg.RootPassword.Trim()} | chpasswd'");
-                Console.WriteLine("Set root password");
             }
 
             return 0;
@@ -250,6 +263,7 @@ namespace setconfig
         public double Lon { get; set; }
         public string Modem { get; set; }
         public string RootPassword { get; set; }
+        public int? RTLPPM { get; set; }
     }
 
     class Network
