@@ -130,7 +130,7 @@ namespace setconfig
                 string networkBlock = GetNetworkBlock(n.SSID, n.Key).Trim();
 
                 // cut off last curly brace
-                networkBlock = networkBlock.Substring(0, networkBlock.Length - 1);
+                networkBlock = networkBlock.Substring(0, networkBlock.Length - 1).Trim();
 
                 sb.AppendLine(networkBlock);
 
