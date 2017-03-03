@@ -91,21 +91,28 @@ namespace setconfig
 
             if (cfg.Wifis.Length > 0)
             {
-                string wpaConfig = BuildWpaConfig(cfg.Wifis);
-                File.WriteAllText(wpaDest, wpaConfig);
-                Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
+                string newWpaConfig = BuildWpaConfig(cfg.Wifis);
+                if (!File.Exists(wpaDest) || File.ReadAllText(wpaDest) != newWpaConfig)
+                {
+                    File.WriteAllText(wpaDest, newWpaConfig);
+                    Console.WriteLine("Wrote Wi-Fi config to " + wpaDest);
+                }
             }
 
-            string icesConf = File.ReadAllText(icesTemplate)
-                .Replace("$mycall", cfg.Mycall);
-            File.WriteAllText(icesDest, icesConf);
-            Console.WriteLine("Wrote ices2 config to " + icesDest);
+            string newIcesConf = File.ReadAllText(icesTemplate).Replace("$mycall", cfg.Mycall);
+            if (!File.Exists(icesDest) || File.ReadAllText(icesDest) != newIcesConf)
+            {
+                File.WriteAllText(icesDest, newIcesConf);
+                Console.WriteLine("Wrote ices2 config to " + icesDest);
+            }
 
             if (!String.IsNullOrWhiteSpace(cfg.RootPassword))
             {
                 ExecuteProcess("/bin/bash", $"-c 'echo root:{cfg.RootPassword.Trim()} | chpasswd'");
                 Console.WriteLine("Set root password");
             }
+
+            ConfigureSlack(cfg);
 
             if (wpaHashBefore == null || BitConverter.ToString(MD5.Create().ComputeHash(File.ReadAllBytes(wpaDest))) != wpaHashBefore)
             {
@@ -118,6 +125,27 @@ namespace setconfig
             }
 
             return 0;
+        }
+
+        static void ConfigureSlack(Config cfg)
+        {
+            const string slackConf = "/tmp/slack.conf";
+            if (string.IsNullOrWhiteSpace(cfg.SlackWebhookUrl))
+            {
+                if (File.Exists(slackConf))
+                {
+                    File.Delete(slackConf);
+                    Console.WriteLine("Removed Slack webhook");
+                }
+            }
+            else
+            {
+                if (!File.Exists(slackConf) || File.ReadAllText(slackConf) != cfg.SlackWebhookUrl.Trim())
+                {
+                    File.WriteAllText(slackConf, cfg.SlackWebhookUrl.Trim());
+                    Console.WriteLine("Configured Slack webhook");
+                }
+            }
         }
 
         static string BuildWpaConfig(Network[] wifis)
@@ -274,6 +302,7 @@ namespace setconfig
         public string Modem { get; set; }
         public string RootPassword { get; set; }
         public int? RTLPPM { get; set; }
+        public string SlackWebhookUrl { get; set; }
     }
 
     class Network

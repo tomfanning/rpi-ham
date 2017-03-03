@@ -11,5 +11,6 @@
     }
   ],
   "RootPassword": "raspberry",
-  "RTLPPM": 0
+  "RTLPPM": 0,
+  "SlackWebhookUrl": ""
 }
