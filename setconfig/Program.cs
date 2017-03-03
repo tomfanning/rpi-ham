@@ -140,9 +140,9 @@ namespace setconfig
             }
             else
             {
-                if (!File.Exists(slackConf) || File.ReadAllText(slackConf) != cfg.SlackWebhookUrl.Trim())
+                if (!File.Exists(slackConf) || File.ReadAllText(slackConf).Trim() != cfg.SlackWebhookUrl.Trim())
                 {
-                    File.WriteAllText(slackConf, cfg.SlackWebhookUrl.Trim());
+                    File.WriteAllText(slackConf, cfg.SlackWebhookUrl.Trim() + Environment.NewLine);
                     Console.WriteLine("Configured Slack webhook");
                 }
             }
