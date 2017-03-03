@@ -127,16 +127,26 @@ namespace setconfig
             foreach (Network n in wifis)
             {
                 sb.AppendLine();
-                string networkBlock = GetNetworkBlock(n.SSID, n.Key).Stdout;
+                string networkBlock = GetNetworkBlock(n.SSID, n.Key).Trim();
+
+                // cut off last curly brace
+                networkBlock = networkBlock.Substring(0, networkBlock.Length - 1);
+
                 sb.AppendLine(networkBlock);
+
+                // allow connection to hidden network
+                sb.AppendLine("        scan_ssid=1");
+
+                // put curly brace back
+                sb.AppendLine("}");
             }
 
             return sb.ToString();
         }
 
-        static ProcessResult GetNetworkBlock(string sSID, string key)
+        static string GetNetworkBlock(string sSID, string key)
         {
-            return ExecuteProcess("/usr/bin/wpa_passphrase", sSID + " " + key);
+            return ExecuteProcess("/usr/bin/wpa_passphrase", sSID + " " + key).Stdout;
         }
 
         static ProcessResult ExecuteProcess(string process, string args = null, string stdin = null)
