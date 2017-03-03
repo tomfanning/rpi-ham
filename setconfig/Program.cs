@@ -129,7 +129,7 @@ namespace setconfig
 
         static void ConfigureSlack(Config cfg)
         {
-            const string slackConf = "/tmp/slack.conf";
+            const string slackConf = "/etc/slack.conf";
             if (string.IsNullOrWhiteSpace(cfg.SlackWebhookUrl))
             {
                 if (File.Exists(slackConf))
